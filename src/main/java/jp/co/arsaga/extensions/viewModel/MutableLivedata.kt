@@ -23,3 +23,11 @@ fun saveCacheTypingDataList(cacheMap: MutableMap<String, String>, propertyList: 
         }
     }
 }
+
+fun restoreCacheTypingDataList(cacheMap: MutableMap<String, String>, propertyList: List<KProperty0<MutableLiveData<String>>>) {
+    propertyList.forEach {
+        it.apply {
+            get().postValue(cacheMap[name] ?: "")
+        }
+    }
+}
