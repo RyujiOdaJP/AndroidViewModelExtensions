@@ -7,13 +7,13 @@ import androidx.recyclerview.widget.DiffUtil
 import kotlinx.coroutines.*
 
 fun <T> MediatorLiveData<T>.setObservableList(
-    observableList: List<LiveData<out Any>>,
+    observableList: List<LiveData<out Any?>>,
     coroutineScope: CoroutineScope,
-    convertLogic: suspend () -> T
+    convertLogic: suspend (Any?) -> T
 ): MediatorLiveData<T> = this.apply {
-    Observer<Any> {
+    Observer<Any?> {
         coroutineScope.launch(Dispatchers.Default) {
-            postValue(convertLogic())
+            postValue(convertLogic(it))
         }
     }.run {
         observableList.forEach { addSource(it, this) }
