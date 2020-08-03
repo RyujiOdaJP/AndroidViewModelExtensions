@@ -9,9 +9,11 @@ import kotlinx.coroutines.*
 fun <T> MediatorLiveData<T>.setObservableList(
     observableList: List<LiveData<out Any?>>,
     coroutineScope: CoroutineScope,
+    hasNullable: Boolean = false,
     convertLogic: suspend (Any?) -> T
 ): MediatorLiveData<T> = this.apply {
     Observer<Any?> {
+        if (!hasNullable && (it == null || observableList.any { it.value == null })) return@Observer
         coroutineScope.launch(Dispatchers.Default) {
             postValue(convertLogic(it))
         }
