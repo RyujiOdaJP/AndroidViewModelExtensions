@@ -16,6 +16,12 @@ fun <T> MutableLiveData<MutableList<T>>.deleteItem(position: Int) {
     this.value = value
 }
 
+fun <T> MutableLiveData<MutableList<T>>.deleteItem(values: T) {
+    val value = this.value ?: mutableListOf()
+    value.remove(values)
+    this.value = value
+}
+
 fun saveCacheTypingDataList(cacheMap: MutableMap<String, String>, propertyList: List<KProperty0<LiveData<String>>>) {
     propertyList.forEach {
         it.apply {
