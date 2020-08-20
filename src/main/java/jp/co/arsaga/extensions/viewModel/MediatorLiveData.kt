@@ -22,6 +22,16 @@ fun <T> MediatorLiveData<T>.setObservableList(
     }
 }
 
+fun <X, Y> LiveData<X>.disposableMap(
+    disposeExpression: (X) -> Boolean = { true },
+    convertLogic: (X) -> Y
+): MediatorLiveData<Y> = MediatorLiveData<Y>().also { result ->
+    result.addSource(this) {
+        result.postValue(convertLogic(it))
+        if (disposeExpression(it)) result.removeSource(this)
+    }
+}
+
 class DiffResultLiveData<T>(
     coroutineScope: CoroutineScope,
     source: LiveData<Collection<T>?>,
