@@ -30,7 +30,7 @@ fun saveCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: Lis
     }
 }
 
-inline fun <reified T>restoreCacheTypingDataList(cacheMap: MutableMap<String, Any?>, propertyList: List<KProperty0<MutableLiveData<T>>>) {
+inline fun <reified T>restoreCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: List<KProperty0<MutableLiveData<T>>>) {
     propertyList.forEach {
         val cache = cacheMap[it.name]
         if(cache is T) {
