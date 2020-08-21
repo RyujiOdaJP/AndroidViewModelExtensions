@@ -22,6 +22,15 @@ fun <T> MutableLiveData<MutableList<T>>.deleteItem(values: T) {
     this.value = value
 }
 
+inline fun <reified T: Any>switchInputDataList(
+    saveCache: MutableMap<String, Any?>,
+    restoreCache: MutableMap<String, Any?>,
+    propertyList: List<KProperty0<MutableLiveData<T>>>
+) {
+    saveCacheInputDataList(saveCache, propertyList)
+    restoreCacheInputDataList(restoreCache, propertyList)
+}
+
 fun saveCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: List<KProperty0<LiveData<out Any>>>) {
     propertyList.forEach {
         it.apply {
