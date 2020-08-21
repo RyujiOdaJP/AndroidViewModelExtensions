@@ -22,18 +22,28 @@ fun <T> MutableLiveData<MutableList<T>>.deleteItem(values: T) {
     this.value = value
 }
 
-fun saveCacheTypingDataList(cacheMap: MutableMap<String, String>, propertyList: List<KProperty0<LiveData<String>>>) {
+inline fun <reified T: Any>switchInputDataList(
+    saveCache: MutableMap<String, Any?>,
+    restoreCache: MutableMap<String, Any?>,
+    propertyList: List<KProperty0<MutableLiveData<T>>>
+) {
+    saveCacheInputDataList(saveCache, propertyList)
+    restoreCacheInputDataList(restoreCache, propertyList)
+}
+
+fun saveCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: List<KProperty0<LiveData<out Any>>>) {
     propertyList.forEach {
         it.apply {
-            cacheMap[name] = get().value ?: ""
+            cacheMap[it.name] = get().value
         }
     }
 }
 
-fun restoreCacheTypingDataList(cacheMap: MutableMap<String, String>, propertyList: List<KProperty0<MutableLiveData<String>>>) {
+inline fun <reified T>restoreCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: List<KProperty0<MutableLiveData<T>>>) {
     propertyList.forEach {
-        it.apply {
-            get().postValue(cacheMap[name] ?: "")
+        val cache = cacheMap[it.name]
+        if(cache is T) {
+            it.get().postValue(cache)
         }
     }
 }
