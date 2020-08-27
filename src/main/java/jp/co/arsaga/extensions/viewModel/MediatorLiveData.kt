@@ -32,12 +32,15 @@ fun <X, Y> LiveData<X>.disposableMap(
     }
 }
 
-class DiffResultLiveData<T>(
+typealias ListDiffResultLiveData<T> = DiffResultLiveData<T, List<T>>
+typealias SetDiffResultLiveData<T> = DiffResultLiveData<T, Set<T>>
+
+class DiffResultLiveData<T, C : Collection<T>>(
     coroutineScope: CoroutineScope,
-    source: LiveData<Collection<T>?>,
-    diffUtilCallbackFactory: suspend (oldList: Collection<T>?, newList: Collection<T>?) -> DiffUtil.Callback
+    source: LiveData<C?>,
+    diffUtilCallbackFactory: suspend (oldList: C?, newList: C?) -> DiffUtil.Callback
 ) : MediatorLiveData<DiffUtil.DiffResult>() {
-    private var cacheData: Collection<T>? = null
+    private var cacheData: C? = null
     init {
         addSource(source) {
             coroutineScope.launch(Dispatchers.Default) {
@@ -48,4 +51,21 @@ class DiffResultLiveData<T>(
             }
         }
     }
+}
+
+abstract class DefaultListDiffCallback(
+    private val oldList: List<Any>?,
+    private val newList: List<Any>?
+) : AbstractDiffUtilCallback(oldList, newList) {
+    override fun areItemsTheSame(
+        oldItemPosition: Int,
+        newItemPosition: Int
+    ): Boolean = oldList?.getOrNull(oldItemPosition) == newList?.getOrNull(newItemPosition)
+}
+abstract class AbstractDiffUtilCallback(
+    private val oldList: Collection<Any>?,
+    private val newList: Collection<Any>?
+) : DiffUtil.Callback() {
+    override fun getOldListSize(): Int = oldList?.size ?: 0
+    override fun getNewListSize(): Int = newList?.size ?: 0
 }
