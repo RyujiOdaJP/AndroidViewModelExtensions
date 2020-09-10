@@ -55,18 +55,23 @@ class DiffResultLiveData<T, C : Collection<T>>(
     }
 }
 
-abstract class DefaultListDiffCallback(
-    private val oldList: List<Any>?,
-    private val newList: List<Any>?
-) : AbstractDiffUtilCallback(oldList, newList) {
+abstract class DefaultListDiffCallback<T>(
+    private val oldList: List<T>?,
+    private val newList: List<T>?
+) : AbstractDiffUtilCallback<T>(oldList, newList) {
+    abstract fun isItemSame(oldItem: T?, newItem: T?): Boolean
     override fun areItemsTheSame(
+        oldItemPosition: Int,
+        newItemPosition: Int
+    ): Boolean = isItemSame(oldList?.getOrNull(oldItemPosition), newList?.getOrNull(newItemPosition))
+    override fun areContentsTheSame(
         oldItemPosition: Int,
         newItemPosition: Int
     ): Boolean = oldList?.getOrNull(oldItemPosition) == newList?.getOrNull(newItemPosition)
 }
-abstract class AbstractDiffUtilCallback(
-    private val oldList: Collection<Any>?,
-    private val newList: Collection<Any>?
+abstract class AbstractDiffUtilCallback<T>(
+    private val oldList: Collection<T>?,
+    private val newList: Collection<T>?
 ) : DiffUtil.Callback() {
     override fun getOldListSize(): Int = oldList?.size ?: 0
     override fun getNewListSize(): Int = newList?.size ?: 0
