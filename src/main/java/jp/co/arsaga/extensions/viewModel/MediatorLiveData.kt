@@ -44,9 +44,11 @@ class DiffResultLiveData<T, C : Collection<T>>(
     init {
         addSource(source) {
             coroutineScope.launch(Dispatchers.Default) {
-                diffUtilCallbackFactory(cacheData, it)
-                    .run { DiffUtil.calculateDiff(this) }
-                    .run { postValue(this) }
+                cacheData?.let { cache ->
+                    diffUtilCallbackFactory(cache, it)
+                        .run { DiffUtil.calculateDiff(this) }
+                        .run { postValue(this) }
+                }
                 cacheData = it
             }
         }
