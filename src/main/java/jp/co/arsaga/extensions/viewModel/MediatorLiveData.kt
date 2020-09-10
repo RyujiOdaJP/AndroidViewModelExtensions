@@ -40,7 +40,7 @@ class DiffResultLiveData<T, C : Collection<T>>(
     source: LiveData<C?>,
     diffUtilCallbackFactory: suspend (oldList: C?, newList: C?) -> DiffUtil.Callback
 ) : MediatorLiveData<DiffUtil.DiffResult>() {
-    private var cacheData: C? = null
+    private var cacheData: C? = source.value
     init {
         addSource(source) {
             coroutineScope.launch(Dispatchers.Default) {
