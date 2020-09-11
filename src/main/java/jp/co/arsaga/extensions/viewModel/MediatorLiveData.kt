@@ -32,39 +32,77 @@ fun <X, Y> LiveData<X>.disposableMap(
     }
 }
 
-typealias ListDiffResultLiveData<T> = DiffResultLiveData<T, List<T>>
-typealias SetDiffResultLiveData<T> = DiffResultLiveData<T, Set<T>>
-
-class DiffResultLiveData<T, C : Collection<T>>(
+class DiffResultLiveData<T, R>private constructor(
     coroutineScope: CoroutineScope,
-    source: LiveData<C?>,
-    diffUtilCallbackFactory: suspend (oldList: C?, newList: C?) -> DiffUtil.Callback
-) : MediatorLiveData<DiffUtil.DiffResult>() {
-    private var cacheData: C? = null
+    source: LiveData<List<T>?>,
+    refreshResultFactory: (oldList: List<T>?, newList: List<T>?, diffResult: DiffUtil.DiffResult) -> R?,
+    diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
+) : MediatorLiveData<R>() {
+    private var cacheData: List<T>? = source.value
     init {
         addSource(source) {
             coroutineScope.launch(Dispatchers.Default) {
-                diffUtilCallbackFactory(cacheData, it)
-                    .run { DiffUtil.calculateDiff(this) }
-                    .run { postValue(this) }
+                cacheData?.let { cache ->
+                    diffUtilCallbackFactory(cache, it)
+                        .run { DiffUtil.calculateDiff(this) }
+                        .run { refreshResultFactory(cache, it, this) }
+                        .run { postValue(this) }
+                }
                 cacheData = it
             }
         }
     }
+    companion object {
+        fun <T>create(
+            coroutineScope: CoroutineScope,
+            source: LiveData<List<T>?>,
+            diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
+        ): DiffResultLiveData<T, DiffUtil.DiffResult> = DiffResultLiveData(
+            coroutineScope,
+            source,
+            { _, _, diffResult -> diffResult },
+            diffUtilCallbackFactory
+        )
+        fun <T>create(
+            coroutineScope: CoroutineScope,
+            source: LiveData<List<T>?>,
+            refreshResultFactory: (oldList: List<T>?, newList: List<T>?, diffResult: DiffUtil.DiffResult) -> DiffRefreshEvent?,
+            diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
+        ): DiffResultLiveData<T, DiffRefreshEvent> = DiffResultLiveData(
+            coroutineScope,
+            source,
+            refreshResultFactory,
+            diffUtilCallbackFactory
+        )
+    }
 }
 
-abstract class DefaultListDiffCallback(
-    private val oldList: List<Any>?,
-    private val newList: List<Any>?
-) : AbstractDiffUtilCallback(oldList, newList) {
+data class DiffRefreshEvent(
+    val diffResult: DiffUtil.DiffResult,
+    val scrollPosition: Int
+) {
+    companion object {
+        const val NON_SCROLL = -1
+    }
+}
+
+abstract class DefaultListDiffCallback<T>(
+    private val oldList: List<T>?,
+    private val newList: List<T>?
+) : AbstractDiffUtilCallback<T>(oldList, newList) {
+    abstract fun isItemSame(oldItem: T?, newItem: T?): Boolean
     override fun areItemsTheSame(
+        oldItemPosition: Int,
+        newItemPosition: Int
+    ): Boolean = isItemSame(oldList?.getOrNull(oldItemPosition), newList?.getOrNull(newItemPosition))
+    override fun areContentsTheSame(
         oldItemPosition: Int,
         newItemPosition: Int
     ): Boolean = oldList?.getOrNull(oldItemPosition) == newList?.getOrNull(newItemPosition)
 }
-abstract class AbstractDiffUtilCallback(
-    private val oldList: Collection<Any>?,
-    private val newList: Collection<Any>?
+abstract class AbstractDiffUtilCallback<T>(
+    private val oldList: Collection<T>?,
+    private val newList: Collection<T>?
 ) : DiffUtil.Callback() {
     override fun getOldListSize(): Int = oldList?.size ?: 0
     override fun getNewListSize(): Int = newList?.size ?: 0
