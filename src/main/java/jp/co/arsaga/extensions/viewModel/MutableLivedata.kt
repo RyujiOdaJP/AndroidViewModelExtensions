@@ -2,6 +2,8 @@ package jp.co.arsaga.extensions.viewModel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.reflect.KProperty0
 
 fun <T> MutableLiveData<MutableList<T>>.addItem(values: T) {
@@ -21,6 +23,8 @@ fun <T> MutableLiveData<MutableList<T>>.deleteItem(values: T) {
     value.remove(values)
     this.value = value
 }
+
+suspend fun <X, Y> LiveData<X>.valueMainThread(query: (X?) -> Y?): Y? = withContext(Dispatchers.Main) { query(value) }
 
 inline fun <reified T: Any>switchInputDataList(
     propertyList: List<KProperty0<MutableLiveData<T>>>
