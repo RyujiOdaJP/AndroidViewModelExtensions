@@ -4,9 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DiffUtil
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 fun <T> MediatorLiveData<T>.setObservableList(
     observableList: List<LiveData<out Any?>>,
@@ -38,16 +36,17 @@ class DiffResultLiveData<T, R> private constructor(
     coroutineScope: CoroutineScope,
     source: LiveData<List<T>?>,
     refreshResultFactory: (oldList: List<T>?, newList: List<T>?, diffResult: DiffUtil.DiffResult) -> R?,
-    diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
+    diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback,
+    calculateThread: CoroutineDispatcher
 ) : MediatorLiveData<R>() {
     private var cacheData: List<T>? = source.value
 
     init {
         addSource(source) {
-            coroutineScope.launch(Dispatchers.Main) {
+            coroutineScope.launch(Dispatchers.Default) {
                 cacheData?.let { cache ->
                     diffUtilCallbackFactory(cache, it)
-                        .run { DiffUtil.calculateDiff(this) }
+                        .let { withContext(calculateThread) { DiffUtil.calculateDiff(it) } }
                         .run { refreshResultFactory(cache, it, this) }
                         .run { postValue(this) }
                 }
@@ -60,24 +59,28 @@ class DiffResultLiveData<T, R> private constructor(
         fun <T> create(
             coroutineScope: CoroutineScope,
             source: LiveData<List<T>?>,
-            diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
+            calculateThread: CoroutineDispatcher = Dispatchers.Default,
+            diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback,
         ): DiffResultLiveData<T, DiffUtil.DiffResult> = DiffResultLiveData(
             coroutineScope,
             source,
             { _, _, diffResult -> diffResult },
-            diffUtilCallbackFactory
+            diffUtilCallbackFactory,
+            calculateThread
         )
 
         fun <T> create(
             coroutineScope: CoroutineScope,
             source: LiveData<List<T>?>,
             refreshResultFactory: (oldList: List<T>?, newList: List<T>?, diffResult: DiffUtil.DiffResult) -> DiffRefreshEvent?,
+            calculateThread: CoroutineDispatcher = Dispatchers.Default,
             diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
         ): DiffResultLiveData<T, DiffRefreshEvent> = DiffResultLiveData(
             coroutineScope,
             source,
             refreshResultFactory,
-            diffUtilCallbackFactory
+            diffUtilCallbackFactory,
+            calculateThread
         )
     }
 }
