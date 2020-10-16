@@ -4,7 +4,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DiffUtil
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 fun <T> MediatorLiveData<T>.setObservableList(
     observableList: List<LiveData<out Any?>>,
@@ -32,16 +34,17 @@ fun <X, Y> LiveData<X>.disposableMap(
     }
 }
 
-class DiffResultLiveData<T, R>private constructor(
+class DiffResultLiveData<T, R> private constructor(
     coroutineScope: CoroutineScope,
     source: LiveData<List<T>?>,
     refreshResultFactory: (oldList: List<T>?, newList: List<T>?, diffResult: DiffUtil.DiffResult) -> R?,
     diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
 ) : MediatorLiveData<R>() {
     private var cacheData: List<T>? = source.value
+
     init {
         addSource(source) {
-            coroutineScope.launch(Dispatchers.Default) {
+            coroutineScope.launch(Dispatchers.Main) {
                 cacheData?.let { cache ->
                     diffUtilCallbackFactory(cache, it)
                         .run { DiffUtil.calculateDiff(this) }
@@ -52,8 +55,9 @@ class DiffResultLiveData<T, R>private constructor(
             }
         }
     }
+
     companion object {
-        fun <T>create(
+        fun <T> create(
             coroutineScope: CoroutineScope,
             source: LiveData<List<T>?>,
             diffUtilCallbackFactory: suspend (oldList: List<T>?, newList: List<T>?) -> DiffUtil.Callback
@@ -63,7 +67,8 @@ class DiffResultLiveData<T, R>private constructor(
             { _, _, diffResult -> diffResult },
             diffUtilCallbackFactory
         )
-        fun <T>create(
+
+        fun <T> create(
             coroutineScope: CoroutineScope,
             source: LiveData<List<T>?>,
             refreshResultFactory: (oldList: List<T>?, newList: List<T>?, diffResult: DiffUtil.DiffResult) -> DiffRefreshEvent?,
@@ -94,12 +99,15 @@ abstract class DefaultListDiffCallback<T>(
     override fun areItemsTheSame(
         oldItemPosition: Int,
         newItemPosition: Int
-    ): Boolean = isItemSame(oldList?.getOrNull(oldItemPosition), newList?.getOrNull(newItemPosition))
+    ): Boolean =
+        isItemSame(oldList?.getOrNull(oldItemPosition), newList?.getOrNull(newItemPosition))
+
     override fun areContentsTheSame(
         oldItemPosition: Int,
         newItemPosition: Int
     ): Boolean = oldList?.getOrNull(oldItemPosition) == newList?.getOrNull(newItemPosition)
 }
+
 abstract class AbstractDiffUtilCallback<T>(
     private val oldList: Collection<T>?,
     private val newList: Collection<T>?
