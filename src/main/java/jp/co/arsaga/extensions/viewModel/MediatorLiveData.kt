@@ -4,7 +4,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DiffUtil
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 fun <T> MediatorLiveData<T>.setObservableList(
     observableList: List<LiveData<out Any?>>,
@@ -43,10 +46,10 @@ class DiffResultLiveData<T, R> private constructor(
 
     init {
         addSource(source) {
-            coroutineScope.launch(Dispatchers.Default) {
+            coroutineScope.launch(calculateThread) {
                 cacheData?.let { cache ->
                     diffUtilCallbackFactory(cache, it)
-                        .let { withContext(calculateThread) { DiffUtil.calculateDiff(it) } }
+                        .run { DiffUtil.calculateDiff(this) }
                         .run { refreshResultFactory(cache, it, this) }
                         .run { postValue(this) }
                 }
