@@ -42,7 +42,7 @@ class DiffResultLiveData<T, R>private constructor(
     init {
         addSource(source) {
             coroutineScope.launch(Dispatchers.Default) {
-                cacheData?.let { cache ->
+                (cacheData ?: listOf()).let { cache ->
                     diffUtilCallbackFactory(cache, it)
                         .run { DiffUtil.calculateDiff(this) }
                         .run { refreshResultFactory(cache, it, this) }
