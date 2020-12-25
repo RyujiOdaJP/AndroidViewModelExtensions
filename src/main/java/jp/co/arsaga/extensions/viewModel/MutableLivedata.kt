@@ -24,15 +24,27 @@ fun <T> MutableLiveData<MutableList<T>>.deleteItem(values: T) {
     this.value = value
 }
 
-suspend fun <X, Y> LiveData<X>.valueMainThread(query: (X?) -> Y?): Y? = withContext(Dispatchers.Main) { query(value) }
-
-inline fun <reified T: Any>switchInputDataList(
-    propertyList: List<KProperty0<MutableLiveData<T>>>
-): (MutableMap<String, Any?>, MutableMap<String, Any?>) -> Unit = { saveCache: MutableMap<String, Any?>, restoreCache: MutableMap<String, Any?> ->
-    switchInputDataList(saveCache, restoreCache, propertyList)
+fun MutableLiveData<String>.removeHyphen() {
+    val value = this.value
+    this.value = value?.replace("-", "")
 }
 
-inline fun <reified T: Any>switchInputDataList(
+fun MutableLiveData<String>.removeWhiteSpace() {
+    val value = this.value
+    this.value = value?.replace("\\s".toRegex(), "")
+}
+
+suspend fun <X, Y> LiveData<X>.valueMainThread(query: (X?) -> Y?): Y? =
+    withContext(Dispatchers.Main) { query(value) }
+
+inline fun <reified T : Any> switchInputDataList(
+    propertyList: List<KProperty0<MutableLiveData<T>>>
+): (MutableMap<String, Any?>, MutableMap<String, Any?>) -> Unit =
+    { saveCache: MutableMap<String, Any?>, restoreCache: MutableMap<String, Any?> ->
+        switchInputDataList(saveCache, restoreCache, propertyList)
+    }
+
+inline fun <reified T : Any> switchInputDataList(
     saveCache: MutableMap<String, Any?>,
     restoreCache: MutableMap<String, Any?>,
     propertyList: List<KProperty0<MutableLiveData<T>>>
@@ -41,7 +53,10 @@ inline fun <reified T: Any>switchInputDataList(
     restoreCacheInputDataList(restoreCache, propertyList)
 }
 
-fun saveCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: List<KProperty0<LiveData<out Any>>>) {
+fun saveCacheInputDataList(
+    cacheMap: MutableMap<String, Any?>,
+    propertyList: List<KProperty0<LiveData<out Any>>>
+) {
     propertyList.forEach {
         it.apply {
             cacheMap[it.name] = get().value
@@ -49,10 +64,13 @@ fun saveCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: Lis
     }
 }
 
-inline fun <reified T>restoreCacheInputDataList(cacheMap: MutableMap<String, Any?>, propertyList: List<KProperty0<MutableLiveData<T>>>) {
+inline fun <reified T> restoreCacheInputDataList(
+    cacheMap: MutableMap<String, Any?>,
+    propertyList: List<KProperty0<MutableLiveData<T>>>
+) {
     propertyList.forEach {
         val cache = cacheMap[it.name]
-        if(cache is T) {
+        if (cache is T) {
             it.get().postValue(cache)
         }
     }
